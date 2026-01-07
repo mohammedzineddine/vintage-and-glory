@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <title>Product Details — Vintage & Glory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lora:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lora', serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .luxury-bg {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+
+        .luxury-gold {
+            color: #d4af37;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-gray-900">
+    <!-- Luxury Navbar -->
+    <nav class="luxury-bg text-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="index.html" class="text-3xl font-bold tracking-wider"
+                style="font-family: 'Playfair Display', serif;">VINTAGE & GLORY</a>
+
+            <div class="hidden md:flex items-center gap-8">
+                <a href="index.html" class="text-sm tracking-widest hover:luxury-gold transition">SHOP</a>
+                <a href="about.html" class="text-sm tracking-widest hover:luxury-gold transition">ABOUT</a>
+                <a href="contact.html" class="text-sm tracking-widest hover:luxury-gold transition">CONTACT</a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="cartBtn"
+                    class="relative text-sm tracking-widest hover:luxury-gold transition py-2 px-3 rounded-md">
+                    CART <span id="cartCount"
+                        class="absolute -top-3 -right-2 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">0</span>
+                </button>
+                <button id="mobileMenuBtn" class="md:hidden p-2 rounded-md bg-white text-gray-900"
+                    aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+        <div id="mobileMenu" class="md:hidden bg-white px-6 pb-4 hidden">
+            <a href="index.html" class="block py-3 border-b text-gray-900">Shop</a>
+            <a href="about.html" class="block py-3 border-b text-gray-900">About</a>
+            <a href="contact.html" class="block py-3 text-gray-900">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+            <a href="index.html" class="hover:luxury-gold transition">Home</a>
+            <span>/</span>
+            <a href="index.html" class="hover:luxury-gold transition">Shop</a>
+            <span>/</span>
+            <span id="breadcrumbCategory" class="text-gray-900">Product</span>
+        </div>
+    </div>
+
+    <!-- Product Detail Section -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        <div id="productDetail" class="grid md:grid-cols-2 gap-12 mb-16">
+            <!-- Content will be loaded by JavaScript -->
+            <div class="text-center py-12 text-gray-600">Loading product details...</div>
+        </div>
+    </main>
+
+    <!-- Luxury Footer -->
+    <footer class="luxury-bg text-white mt-32">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <div class="grid grid-cols-3 gap-12 mb-12">
+                <div>
+                    <h3 class="text-sm tracking-widest font-semibold mb-4">SHOP</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="#" class="hover:luxury-gold transition">New Arrivals</a></li>
+                        <li><a href="#" class="hover:luxury-gold transition">Collections</a></li>
+                        <li><a href="#" class="hover:luxury-gold transition">Best Sellers</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm tracking-widest font-semibold mb-4">COMPANY</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="about.html" class="hover:luxury-gold transition">About Us</a></li>
+                        <li><a href="contact.html" class="hover:luxury-gold transition">Contact</a></li>
+                        <li><a href="#" class="hover:luxury-gold transition">Press</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm tracking-widest font-semibold mb-4">CONNECT</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li><a href="#" class="hover:luxury-gold transition">Instagram</a></li>
+                        <li><a href="#" class="hover:luxury-gold transition">Facebook</a></li>
+                        <li><a href="#" class="hover:luxury-gold transition">LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
+                <p>&copy; 2026 Vintage & Glory. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
+        <div class="bg-white w-full max-w-2xl max-h-96 overflow-y-auto rounded">
+            <div class="sticky top-0 bg-white border-b px-8 py-6 flex justify-between items-center">
+                <h2 class="text-2xl font-bold" style="font-family: 'Playfair Display', serif;">Shopping Cart</h2>
+                <button id="closeCart" class="text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="cartItems" class="px-8 py-6 space-y-6">
+                <!-- cart items rendered here -->
+            </div>
+            <div class="border-t px-8 py-6 flex justify-between items-center bg-gray-50">
+                <div class="text-xl font-bold">Total: <span id="cartTotal">0.00</span> DZ</div>
+                <div class="flex gap-4">
+                    <button id="clearCart"
+                        class="px-6 py-2 border border-gray-400 text-gray-900 hover:bg-gray-100 transition">CLEAR</button>
+                    <button id="checkoutBtn"
+                        class="px-6 py-2 bg-gray-900 text-white hover:bg-black transition">CHECKOUT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+    <script src="supabase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize cart count
+            updateCartCount();
+
+            // Get product ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+
+            if (!productId) {
+                document.getElementById('productDetail').innerHTML =
+                    '<div class="col-span-2 text-center py-12 text-red-600">Product ID not found in URL.</div>';
+                return;
+            }
+
+            // Fetch and display product
+            const product = await fetchProductById(productId);
+
+            if (!product) {
+                document.getElementById('productDetail').innerHTML =
+                    '<div class="col-span-2 text-center py-12 text-red-600">Product not found.</div>';
+                return;
+            }
+
+            // Display product details
+            document.getElementById('productDetail').innerHTML = `
+                <div>
+                    <img src="${product.image_url || 'https://via.placeholder.com/600x800'}" 
+                         alt="${product.name}" 
+                         class="w-full rounded-lg shadow-2xl">
+                </div>
+                <div>
+                    <p id="productCategory" class="text-xs tracking-widest text-gray-500 mb-2">CATEGORY</p>
+                    <h1 id="productName" class="text-5xl font-bold mb-4" style="font-family: 'Playfair Display', serif;">
+                        ${product.name}
+                    </h1>
+                    <p id="productPrice" class="text-5xl font-bold luxury-gold mb-8">${formatPrice(product.price)} DZ</p>
+                    
+                    <!-- Description -->
+                    <div class="mb-8">
+                        <h3 class="text-sm tracking-widest font-semibold mb-3">DESCRIPTION</h3>
+                        <p id="productDescription" class="text-gray-600 leading-relaxed text-lg">
+                            ${product.description || 'No description available.'}
+                        </p>
+                    </div>
+                    
+                    <!-- Size Selection -->
+                    <div class="mb-8">
+                        <h3 class="text-sm tracking-widest font-semibold mb-3">SELECT SIZE</h3>
+                        <div id="productSizes" class="flex gap-3 flex-wrap">
+                            <button class="px-4 py-2 border border-gray-300 hover:border-gray-900 transition" data-size="S">S</button>
+                            <button class="px-4 py-2 border border-gray-300 hover:border-gray-900 transition" data-size="M">M</button>
+                            <button class="px-4 py-2 border border-gray-300 hover:border-gray-900 transition" data-size="L">L</button>
+                            <button class="px-4 py-2 border border-gray-300 hover:border-gray-900 transition" data-size="XL">XL</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Color Selection -->
+                    <div class="mb-8">
+                        <h3 class="text-sm tracking-widest font-semibold mb-3">SELECT COLOR</h3>
+                        <div id="productColors" class="flex gap-3">
+                            <button class="w-10 h-10 rounded-full bg-gray-800 border-2 border-transparent hover:border-gray-900 transition" data-color="Black"></button>
+                            <button class="w-10 h-10 rounded-full bg-blue-800 border-2 border-transparent hover:border-gray-900 transition" data-color="Blue"></button>
+                            <button class="w-10 h-10 rounded-full bg-red-800 border-2 border-transparent hover:border-gray-900 transition" data-color="Red"></button>
+                            <button class="w-10 h-10 rounded-full bg-green-800 border-2 border-transparent hover:border-gray-900 transition" data-color="Green"></button>
+                        </div>
+                    </div>
+                    
+                    <!-- Quantity -->
+                    <div class="mb-10">
+                        <h3 class="text-sm tracking-widest font-semibold mb-3">QUANTITY</h3>
+                        <div class="flex items-center gap-4">
+                            <button id="decreaseQty"
+                                class="w-12 h-12 border-2 border-gray-300 rounded hover:bg-gray-50 text-xl font-bold">-</button>
+                            <span id="productQuantity" class="text-2xl font-semibold w-16 text-center">1</span>
+                            <button id="increaseQty"
+                                class="w-12 h-12 border-2 border-gray-300 rounded hover:bg-gray-50 text-xl font-bold">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Add to Cart Button -->
+                    <button id="addToCartBtn"
+                        class="w-full py-5 bg-gray-900 text-white text-base tracking-widest hover:bg-black transition mb-8 rounded">
+                        ADD TO CART
+                    </button>
+                    
+                    <!-- Product Details -->
+                    <div class="border-t border-b py-8">
+                        <h3 class="text-sm tracking-widest font-semibold mb-6">PRODUCT DETAILS</h3>
+                        <div class="space-y-4 text-base">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Material:</span>
+                                <span id="productMaterial" class="font-medium">Premium Material</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Availability:</span>
+                                <span id="productStock" class="font-medium text-green-600">In Stock</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">SKU:</span>
+                                <span id="productSKU" class="font-medium">SKU-${product.id.toString().padStart(3, '0')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Back to Shop -->
+                    <div class="mt-8">
+                        <a href="index.html"
+                            class="inline-block text-sm tracking-widest text-gray-600 hover:luxury-gold transition">
+                            ← BACK TO SHOP
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            // Setup event listeners for the newly created elements
+            setupProductDetailListeners(product);
+
+            // Set breadcrumb
+            document.getElementById('breadcrumbCategory').textContent = product.name;
+        });
+
+        function setupProductDetailListeners(product) {
+            // Quantity controls
+            const decreaseBtn = document.getElementById('decreaseQty');
+            const increaseBtn = document.getElementById('increaseQty');
+            const quantitySpan = document.getElementById('productQuantity');
+
+            if (decreaseBtn) {
+                decreaseBtn.addEventListener('click', () => {
+                    let qty = parseInt(quantitySpan.textContent);
+                    if (qty > 1) {
+                        quantitySpan.textContent = qty - 1;
+                    }
+                });
+            }
+
+            if (increaseBtn) {
+                increaseBtn.addEventListener('click', () => {
+                    let qty = parseInt(quantitySpan.textContent);
+                    quantitySpan.textContent = qty + 1;
+                });
+            }
+
+            // Add to Cart button - FIXED: Now uses the updated addToCart function with options
+            const addToCartBtn = document.getElementById('addToCartBtn');
+            if (addToCartBtn) {
+                addToCartBtn.addEventListener('click', () => {
+                    const quantity = parseInt(document.getElementById('productQuantity').textContent);
+
+                    // Get selected size
+                    const selectedSize = document.querySelector('#productSizes button.border-gray-900');
+                    const size = selectedSize ? selectedSize.getAttribute('data-size') : 'M';
+
+                    // Get selected color
+                    const selectedColor = document.querySelector('#productColors button.border-gray-900');
+                    const color = selectedColor ? selectedColor.getAttribute('data-color') : 'Black';
+
+                    // Call addToCart with product and options object
+                    // This matches the updated function signature in app.js: addToCart(product, options = {})
+                    addToCart(product, {
+                        qty: quantity,
+                        size: size,
+                        color: color
+                    });
+
+                    alert(`Added ${quantity}x ${product.name} (${size}, ${color}) to cart!`);
+
+                    // Update cart count
+                    updateCartCount();
+                });
+            }
+
+            // Size selection
+            const sizeButtons = document.querySelectorAll('#productSizes button');
+            sizeButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    sizeButtons.forEach(btn => btn.classList.remove('border-gray-900'));
+                    this.classList.add('border-gray-900');
+                });
+            });
+
+            // Color selection
+            const colorButtons = document.querySelectorAll('#productColors button');
+            colorButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    colorButtons.forEach(btn => btn.classList.remove('border-gray-900'));
+                    this.classList.add('border-gray-900');
+                });
+            });
+
+            // Set default selections
+            if (sizeButtons.length > 1) {
+                sizeButtons[1].classList.add('border-gray-900'); // Default to M
+            }
+            if (colorButtons.length > 0) {
+                colorButtons[0].classList.add('border-gray-900'); // Default to Black
+            }
+        }
+
+        // Cart and mobile menu functionality - UPDATED to match app.js
+        const cartBtn = document.getElementById('cartBtn');
+        const closeCartBtn = document.getElementById('closeCart');
+        const clearCartBtn = document.getElementById('clearCart');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+
+        if (cartBtn) cartBtn.addEventListener('click', openCart);
+        if (closeCartBtn) closeCartBtn.addEventListener('click', closeCart);
+        if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
+        if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
+            window.location.href = 'checkout.html';
+        });
+
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => {
+            if (!mobileMenu) return;
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+
+</html>

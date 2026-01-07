@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile — Vintage & Glory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <nav class="bg-white border-b">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="index.html" class="text-2xl font-semibold">Vintage & Glory</a>
+            <div class="flex items-center gap-6">
+                <a href="index.html" class="text-lg text-gray-700 hover:text-indigo-600">Home</a>
+                <a href="about.html" class="text-lg text-gray-700 hover:text-indigo-600">About</a>
+                <a href="contact.html" class="text-lg text-gray-700 hover:text-indigo-600">Contact</a>
+                <a href="admin.html" class="text-lg text-gray-700 hover:text-indigo-600">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-4 py-12">
+        <div id="profileContent" class="bg-white rounded shadow p-6">
+            <h1 class="text-2xl font-bold mb-6">My Profile</h1>
+
+            <div class="space-y-6">
+                <!-- User info -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-4">Account Information</h2>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <div class="mb-3">
+                            <span class="text-sm text-gray-600">Email:</span>
+                            <div id="userEmail" class="font-semibold"></div>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-600">Joined:</span>
+                            <div id="userJoined" class="font-semibold"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order history -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-4">Order History</h2>
+                    <div id="ordersContainer" class="space-y-4">
+                        <p class="text-gray-600">Loading orders...</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <a href="index.html" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Back to Shop</a>
+                    <button id="logoutBtn"
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Not logged in message -->
+        <div id="notLoggedIn" style="display:none;" class="bg-white rounded shadow p-6 text-center">
+            <h2 class="text-xl font-bold mb-4">Not Logged In</h2>
+            <p class="text-gray-600 mb-6">Please sign in to view your profile.</p>
+            <a href="index.html" class="px-4 py-2 bg-indigo-600 text-white rounded">Back to Home</a>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-6xl mx-auto px-4 py-8 text-gray-600 flex justify-between">
+            <div>
+                <div class="font-semibold">Vintage & Glory</div>
+                <div class="text-sm">Timeless clothing, made with care.</div>
+            </div>
+            <div class="text-sm">
+                <div><a href="about.html" class="hover:underline">About</a></div>
+                <div><a href="contact.html" class="hover:underline">Contact</a></div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+    <script src="supabase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        async function loadProfile() {
+            const user = await getCurrentUser();
+            const profileContent = document.getElementById('profileContent');
+            const notLoggedIn = document.getElementById('notLoggedIn');
+
+            if (!user) {
+                profileContent.style.display = 'none';
+                notLoggedIn.style.display = 'block';
+                return;
+            }
+
+            // Show user info
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userJoined').textContent = new Date(user.created_at).toLocaleDateString();
+
+            // Load orders
+            const { data: orders, error } = await supabase
+                .from('orders')
+                .select('id, total, status, inserted_at')
+                .eq('user_id', user.id)
+                .order('inserted_at', { ascending: false });
+
+            const ordersContainer = document.getElementById('ordersContainer');
+            if (error) {
+                ordersContainer.innerHTML = '<p class="text-red-600">Error loading orders</p>';
+                return;
+            }
+
+            if (!orders || orders.length === 0) {
+                ordersContainer.innerHTML = '<p class="text-gray-600">No orders yet.</p>';
+                return;
+            }
+
+            ordersContainer.innerHTML = orders.map(o => `
+                <div class="bg-gray-50 p-4 rounded">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-semibold">Order #${o.id}</div>
+                        <span class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">${o.status}</span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600">
+                        <div>Total: ${Number(o.total).toFixed(2)} DZ</div>
+                        <div>${new Date(o.inserted_at).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await authSignOut();
+            window.location.href = 'index.html';
+        });
+
+        loadProfile();
+    </script>
+</body>
+
+</html>
