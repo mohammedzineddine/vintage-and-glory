@@ -112,7 +112,11 @@
         </form>
         <p id="adminAuthMsg" class="text-sm text-gray-600 mt-2 text-center"></p>
         <hr class="my-4">
-
+        <p class="text-xs text-gray-500 text-center">
+            <strong>Demo Credentials:</strong><br>
+            Email: mzineddine03@gmail.com<br>
+            Password: admin123
+        </p>
     </div>
 
     <!-- Admin panel (hidden until auth) -->
@@ -197,11 +201,20 @@
         let adminUser = null;
         let editingId = null;
 
-        // Demo credentials (in production, use Supabase Auth)
+        // Demo credentials
         const DEMO_ADMIN = {
             email: 'mzineddine03@gmail.com',
             password: 'admin123'
         };
+
+        // Helper function for price formatting (in case app.js isn't loaded)
+        function formatPrice(p) {
+            if (typeof window.formatPrice === 'function') {
+                return window.formatPrice(p);
+            }
+            // Fallback if app.js not loaded
+            return Number(p).toFixed(2);
+        }
 
         async function checkAdminAuth() {
             const stored = localStorage.getItem('admin:vintage');
@@ -218,15 +231,21 @@
 
         async function adminLogin(email, password) {
             const msg = document.getElementById('adminAuthMsg');
+            if (!msg) return;
 
-            // Demo authentication (for development only)
+            // Demo authentication
             if (email === DEMO_ADMIN.email && password === DEMO_ADMIN.password) {
                 adminUser = { email, loginTime: new Date().toISOString() };
                 localStorage.setItem('admin:vintage', JSON.stringify(adminUser));
-                msg.textContent = '';
-                showAdminPanel();
-                loadProducts();
-                document.getElementById('adminAuthForm').reset();
+                msg.textContent = 'Login successful!';
+                msg.style.color = '#16a34a';
+                
+                setTimeout(() => {
+                    msg.textContent = '';
+                    showAdminPanel();
+                    loadProducts();
+                    document.getElementById('adminAuthForm').reset();
+                }, 1000);
                 return;
             }
 
@@ -235,174 +254,266 @@
         }
 
         function showAdminPanel() {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
+            const authScreen = document.getElementById('authScreen');
+            const adminPanel = document.getElementById('adminPanel');
+            if (authScreen) authScreen.classList.add('hidden');
+            if (adminPanel) adminPanel.classList.remove('hidden');
         }
 
         function logout() {
             localStorage.removeItem('admin:vintage');
             adminUser = null;
             editingId = null;
-            document.getElementById('adminPanel').classList.add('hidden');
-            document.getElementById('authScreen').classList.remove('hidden');
-            document.getElementById('adminAuthMsg').textContent = '';
+            const adminPanel = document.getElementById('adminPanel');
+            const authScreen = document.getElementById('authScreen');
+            const authMsg = document.getElementById('adminAuthMsg');
+            
+            if (adminPanel) adminPanel.classList.add('hidden');
+            if (authScreen) authScreen.classList.remove('hidden');
+            if (authMsg) authMsg.textContent = '';
         }
 
         async function loadProducts() {
-            const products = await fetchProducts();
-            renderProductsTable(products);
+            try {
+                // Check if fetchProducts exists from app.js
+                let products = [];
+                if (typeof window.fetchProducts === 'function') {
+                    products = await window.fetchProducts();
+                } else {
+                    // Fallback direct fetch
+                    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+                    if (error) throw error;
+                    products = data || [];
+                }
+                renderProductsTable(products);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                const table = document.getElementById('productsTable');
+                if (table) {
+                    table.innerHTML = '<p class="text-red-600">Error loading products. Check console.</p>';
+                }
+            }
         }
 
         function renderProductsTable(products) {
             const table = document.getElementById('productsTable');
-            if (products.length === 0) {
-                table.innerHTML = '<p class="text-gray-600">No products yet.</p>';
+            if (!table) return;
+            
+            if (!products || products.length === 0) {
+                table.innerHTML = '<p class="text-gray-600">No products yet. Add your first product above.</p>';
                 return;
             }
+            
             let html = `
                 <table class="luxury-table">
                     <thead>
                         <tr>
                             <th>NAME</th>
                             <th>PRICE</th>
+                            <th>IMAGE</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
+            
             products.forEach(p => {
                 html += `
                     <tr>
-                        <td><strong>${p.name}</strong></td>
-                        <td>${formatPrice(p.price)} DZ</td>
+                        <td><strong>${p.name || 'Unnamed'}</strong><br>
+                            <small class="text-gray-500 text-sm">${p.description ? p.description.substring(0, 50) + '...' : 'No description'}</small>
+                        </td>
+                        <td>${formatPrice(p.price || 0)} DZ</td>
+                        <td>
+                            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" class="w-16 h-16 object-cover rounded">` : 'No image'}
+                        </td>
                         <td class="flex gap-2">
-                            <button class="px-3 py-1 bg-gray-800 text-white rounded text-xs tracking-widest hover:bg-black transition" onclick="editProduct(${p.id})">EDIT</button>
-                            <button class="px-3 py-1 bg-red-600 text-white rounded text-xs tracking-widest hover:bg-red-700 transition" onclick="deleteProduct(${p.id})">DELETE</button>
+                            <button class="px-3 py-1 bg-gray-800 text-white rounded text-xs tracking-widest hover:bg-black transition" data-edit="${p.id}">EDIT</button>
+                            <button class="px-3 py-1 bg-red-600 text-white rounded text-xs tracking-widest hover:bg-red-700 transition" data-delete="${p.id}">DELETE</button>
                         </td>
                     </tr>
                 `;
             });
+            
             html += `
                     </tbody>
                 </table>
             `;
+            
             table.innerHTML = html;
+            
+            // Add event listeners to the buttons
+            table.querySelectorAll('[data-edit]').forEach(btn => {
+                btn.addEventListener('click', () => editProduct(btn.getAttribute('data-edit')));
+            });
+            
+            table.querySelectorAll('[data-delete]').forEach(btn => {
+                btn.addEventListener('click', () => deleteProduct(btn.getAttribute('data-delete')));
+            });
         }
 
         async function editProduct(id) {
-            const p = await fetchProductById(id);
-            if (!p) return;
-            editingId = id;
-            document.getElementById('formTitle').textContent = 'Edit Product';
-            document.getElementById('productName').value = p.name;
-            document.getElementById('productDesc').value = p.description || '';
-            document.getElementById('productPrice').value = p.price;
-            document.getElementById('productImage').value = p.image_url || '';
-            // preview existing image
-            const preview = document.getElementById('productPreview');
-            if (p.image_url) {
-                preview.src = p.image_url;
-                preview.classList.remove('hidden');
-            } else {
-                preview.src = '';
-                preview.classList.add('hidden');
+            try {
+                let product;
+                if (typeof window.fetchProductById === 'function') {
+                    product = await window.fetchProductById(id);
+                } else {
+                    // Fallback direct fetch
+                    const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+                    if (error) throw error;
+                    product = data;
+                }
+                
+                if (!product) {
+                    alert('Product not found');
+                    return;
+                }
+                
+                editingId = id;
+                document.getElementById('formTitle').textContent = 'Edit Product';
+                document.getElementById('productName').value = product.name || '';
+                document.getElementById('productDesc').value = product.description || '';
+                document.getElementById('productPrice').value = product.price || 0;
+                document.getElementById('productImage').value = product.image_url || '';
+                
+                // Preview existing image
+                const preview = document.getElementById('productPreview');
+                if (preview && product.image_url) {
+                    preview.src = product.image_url;
+                    preview.classList.remove('hidden');
+                }
+                
+                document.getElementById('submitBtn').textContent = 'Update';
+                document.getElementById('resetBtn').style.display = 'inline-block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error loading product:', error);
+                alert('Error loading product: ' + error.message);
             }
-            document.getElementById('submitBtn').textContent = 'Update';
-            document.getElementById('resetBtn').style.display = 'inline-block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function deleteProduct(id) {
-            if (!confirm('Are you sure?')) return;
-            await adminDeleteProduct(id);
-            loadProducts();
+            if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+            
+            try {
+                if (typeof window.adminDeleteProduct === 'function') {
+                    await window.adminDeleteProduct(id);
+                } else {
+                    // Fallback direct delete
+                    const { error } = await supabase.from('products').delete().eq('id', id);
+                    if (error) throw error;
+                    alert('Product deleted successfully');
+                }
+                loadProducts();
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('Error deleting product: ' + error.message);
+            }
         }
 
         function resetForm() {
             editingId = null;
-            document.getElementById('productForm').reset();
+            const form = document.getElementById('productForm');
+            if (form) form.reset();
+            
             document.getElementById('formTitle').textContent = 'Add Product';
             document.getElementById('submitBtn').textContent = 'Add';
             document.getElementById('resetBtn').style.display = 'none';
-            // clear preview and file input
+            
+            // Clear preview and file input
             const preview = document.getElementById('productPreview');
-            if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+            
             const fileInput = document.getElementById('productFile');
             if (fileInput) fileInput.value = '';
+            
             const removeCb = document.getElementById('removeImage');
             if (removeCb) removeCb.checked = false;
+            
+            const msgEl = document.getElementById('productFormMsg');
+            if (msgEl) {
+                msgEl.className = 'hidden p-3 rounded text-sm';
+                msgEl.textContent = '';
+            }
         }
 
-        // Wire up events
-        document.getElementById('adminAuthForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            await adminLogin(email);
-        });
+        // Simplified image upload function
+        async function uploadProductImage(file) {
+            try {
+                const filePath = `product-images/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+                const { data, error } = await supabase.storage
+                    .from('product-images')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false,
+                        contentType: file.type
+                    });
+                
+                if (error) throw error;
+                
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(filePath);
+                
+                return urlData.publicUrl;
+            } catch (error) {
+                console.error('Image upload error:', error);
+                throw error;
+            }
+        }
 
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-
+        // Main form submission handler
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('productName').value;
-            const desc = document.getElementById('productDesc').value;
+            
+            const name = document.getElementById('productName').value.trim();
+            const desc = document.getElementById('productDesc').value.trim();
             const price = parseFloat(document.getElementById('productPrice').value);
             const imageUrlInput = document.getElementById('productImage').value.trim();
             const fileInput = document.getElementById('productFile');
             const removeChecked = document.getElementById('removeImage').checked;
-
-            // determine image_url: file upload takes precedence, then URL input, then remove flag
-            let finalImageUrl = '';
+            
+            // Validation
+            if (!name) {
+                alert('Product name is required');
+                return;
+            }
+            
+            if (!price || price <= 0) {
+                alert('Valid price is required');
+                return;
+            }
+            
             const msgEl = document.getElementById('productFormMsg');
-            if (msgEl) { msgEl.className = 'hidden p-3 rounded text-sm'; msgEl.textContent = ''; }
-            // if user selected a file, upload it to Supabase Storage
+            if (msgEl) {
+                msgEl.className = 'hidden p-3 rounded text-sm';
+                msgEl.textContent = '';
+            }
+            
+            let finalImageUrl = '';
+            
+            // Handle image
             if (fileInput && fileInput.files && fileInput.files.length > 0) {
-                const file = fileInput.files[0];
                 try {
-                    const filePath = `images/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage.from('product-images').upload(filePath, file, { cacheControl: '3600', upsert: false, contentType: file.type });
-                    if (uploadError) {
-                        console.error('Upload error', uploadError);
-                        if (msgEl) { msgEl.textContent = 'Upload error — see console. Details: ' + JSON.stringify(uploadError); msgEl.className = 'p-3 rounded bg-red-100 text-red-700'; }
-                        // attempt fallback to provided URL if available
-                        if (imageUrlInput) {
-                            finalImageUrl = imageUrlInput;
-                            if (msgEl) { msgEl.textContent = 'Image upload failed, using provided URL instead. Upload error: ' + (uploadError.message || uploadError.name || JSON.stringify(uploadError)); msgEl.className = 'p-3 rounded bg-yellow-50 text-yellow-800'; }
-                        } else {
-                            // try to list the `images` folder in the bucket for diagnostics
-                            try {
-                                const { data: listData, error: listError } = await supabase.storage.from('product-images').list('images', { limit: 20 });
-                                console.error('Bucket images list check', listError, listData);
-                                if (msgEl) { msgEl.textContent = 'Image upload failed and no URL provided. Check bucket/images exists and is public. See console for details. Bucket list: ' + JSON.stringify(listError || listData); msgEl.className = 'p-3 rounded bg-red-100 text-red-700'; }
-                            } catch (le) {
-                                console.error('Bucket images list exception', le);
-                                if (msgEl) { msgEl.textContent = 'Image upload failed and images folder check failed. See console. Exception: ' + (le.message || le.name); msgEl.className = 'p-3 rounded bg-red-100 text-red-700'; }
-                            }
-                            return;
-                        }
-                    } else {
-                        console.log('Upload success', uploadData);
-                        if (msgEl) { msgEl.textContent = 'Upload response: ' + JSON.stringify(uploadData); msgEl.className = 'p-3 rounded bg-green-50 text-green-800'; }
-                        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(filePath);
-                        finalImageUrl = urlData && urlData.publicUrl ? urlData.publicUrl : '';
-                        if (msgEl && finalImageUrl) { msgEl.innerHTML += '\nPublic URL: ' + finalImageUrl; }
-                        // verify file exists in bucket/images (diagnostic)
-                        try {
-                            const { data: listAfter, error: listErr } = await supabase.storage.from('product-images').list('images', { limit: 100 });
-                            console.log('Bucket images contents (sample):', listAfter, listErr);
-                            if (msgEl) { msgEl.innerHTML += '\nBucket images sample count: ' + (listAfter ? listAfter.length : 0); }
-                        } catch (le) {
-                            console.error('List after upload exception', le);
-                        }
-                    }
-                } catch (err) {
-                    console.error('Upload exception', err);
+                    const file = fileInput.files[0];
+                    msgEl.textContent = 'Uploading image...';
+                    msgEl.className = 'p-3 rounded bg-blue-50 text-blue-800';
+                    msgEl.classList.remove('hidden');
+                    
+                    finalImageUrl = await uploadProductImage(file);
+                    
+                    msgEl.textContent = 'Image uploaded successfully!';
+                    msgEl.className = 'p-3 rounded bg-green-50 text-green-800';
+                } catch (error) {
+                    msgEl.textContent = 'Image upload failed. Using provided URL or no image.';
+                    msgEl.className = 'p-3 rounded bg-yellow-50 text-yellow-800';
+                    
                     if (imageUrlInput) {
                         finalImageUrl = imageUrlInput;
-                        if (msgEl) { msgEl.textContent = 'Image upload error, using provided URL: ' + (err.message || err.name); msgEl.className = 'p-3 rounded bg-yellow-50 text-yellow-800'; }
-                    } else {
-                        if (msgEl) { msgEl.textContent = 'Image upload error: ' + (err.message || err.name); msgEl.className = 'p-3 rounded bg-red-100 text-red-700'; }
-                        return;
                     }
                 }
             } else if (removeChecked) {
@@ -410,100 +521,173 @@
             } else if (imageUrlInput) {
                 finalImageUrl = imageUrlInput;
             }
-
-            if (editingId) {
-                await adminUpdateProduct(editingId, { name, description: desc, price, image_url: finalImageUrl });
-                resetForm();
-            } else {
-                await adminCreateProduct({ name, description: desc, price, image_url: finalImageUrl });
-                document.getElementById('productForm').reset();
-            }
-            loadProducts();
-        });
-
-        document.getElementById('resetBtn').addEventListener('click', resetForm);
-
-        document.getElementById('generateBtn').addEventListener('click', async () => {
-            if (confirm('This will create 6 sample products. Continue?')) {
-                await generateSampleProducts();
-                loadProducts();
-            }
-        });
-
-        // diagnostics: check bucket listing when requested
-        const checkBucketBtn = document.getElementById('checkBucketBtn');
-        if (checkBucketBtn) {
-            checkBucketBtn.addEventListener('click', async () => {
-                const msgEl = document.getElementById('productFormMsg');
-                try {
-                    const { data, error } = await supabase.storage.from('product-images').list('images', { limit: 50 });
-                    if (error) {
-                        console.error('Bucket images list error', error);
-                        msgEl.textContent = 'Bucket images list error: ' + (error.message || error.name || 'unknown');
-                        msgEl.className = 'p-3 rounded bg-red-100 text-red-700';
+            
+            // Create payload
+            const payload = {
+                name,
+                description: desc,
+                price,
+                image_url: finalImageUrl || null
+            };
+            
+            try {
+                if (editingId) {
+                    // Update existing product
+                    if (typeof window.adminUpdateProduct === 'function') {
+                        await window.adminUpdateProduct(editingId, payload);
                     } else {
-                        console.log('Bucket images list', data);
-                        msgEl.textContent = `product-images/images has ${data.length} items (logged to console).`;
-                        msgEl.className = 'p-3 rounded bg-green-50 text-green-800';
+                        const { error } = await supabase
+                            .from('products')
+                            .update(payload)
+                            .eq('id', editingId);
+                        if (error) throw error;
                     }
-                } catch (err) {
-                    console.error('Bucket images list exception', err);
-                    msgEl.textContent = 'Bucket images list exception: ' + (err.message || err.name);
-                    msgEl.className = 'p-3 rounded bg-red-100 text-red-700';
+                    alert('Product updated successfully!');
+                } else {
+                    // Create new product
+                    if (typeof window.adminCreateProduct === 'function') {
+                        await window.adminCreateProduct(payload);
+                    } else {
+                        const { error } = await supabase
+                            .from('products')
+                            .insert([payload]);
+                        if (error) throw error;
+                    }
+                    alert('Product created successfully!');
                 }
-            });
-        }
-
-        // preview selected file immediately
-        const productFileEl = document.getElementById('productFile');
-        const productPreviewEl = document.getElementById('productPreview');
-        if (productFileEl) {
-            productFileEl.addEventListener('change', (e) => {
-                const f = e.target.files[0];
-                if (f) {
-                    productPreviewEl.src = URL.createObjectURL(f);
-                    productPreviewEl.classList.remove('hidden');
-                }
-            });
-        }
-        // update preview when URL input changes
-        const productImageInput = document.getElementById('productImage');
-        if (productImageInput) {
-            productImageInput.addEventListener('input', (e) => {
-                const v = e.target.value.trim();
-                if (v) {
-                    productPreviewEl.src = v;
-                    productPreviewEl.classList.remove('hidden');
-                }
-            });
-        }
-
-        // Admin auth form
-        document.getElementById('adminAuthForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
-            await adminLogin(email, password);
-        });
-
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
-                logout();
+                
+                resetForm();
+                loadProducts();
+                
+            } catch (error) {
+                console.error('Error saving product:', error);
+                alert('Error saving product: ' + error.message);
             }
         });
 
-        // Initial check
-        checkAdminAuth();
-        // Mobile menu toggle (admin)
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => {
-            if (!mobileMenu) return;
-            mobileMenu.classList.toggle('hidden');
+        // Event listeners setup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Admin auth form
+            const authForm = document.getElementById('adminAuthForm');
+            if (authForm) {
+                authForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('adminEmail').value;
+                    const password = document.getElementById('adminPassword').value;
+                    await adminLogin(email, password);
+                });
+            }
+            
+            // Logout buttons
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to logout?')) {
+                        logout();
+                    }
+                });
+            }
+            
+            const logoutBtnMobile = document.getElementById('logoutBtnMobile');
+            if (logoutBtnMobile) {
+                logoutBtnMobile.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to logout?')) {
+                        logout();
+                    }
+                });
+            }
+            
+            // Reset form button
+            const resetBtn = document.getElementById('resetBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetForm);
+            }
+            
+            // Generate samples button
+            const generateBtn = document.getElementById('generateBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', async () => {
+                    if (confirm('This will create 6 sample products. Continue?')) {
+                        try {
+                            if (typeof window.generateSampleProducts === 'function') {
+                                await window.generateSampleProducts();
+                            } else {
+                                alert('Sample generation function not available');
+                            }
+                            loadProducts();
+                        } catch (error) {
+                            console.error('Error generating samples:', error);
+                            alert('Error generating samples: ' + error.message);
+                        }
+                    }
+                });
+            }
+            
+            // Check bucket button
+            const checkBucketBtn = document.getElementById('checkBucketBtn');
+            if (checkBucketBtn) {
+                checkBucketBtn.addEventListener('click', async () => {
+                    const msgEl = document.getElementById('productFormMsg');
+                    try {
+                        const { data, error } = await supabase.storage
+                            .from('product-images')
+                            .list('', { limit: 50 });
+                        
+                        if (error) {
+                            msgEl.textContent = 'Error: ' + error.message;
+                            msgEl.className = 'p-3 rounded bg-red-100 text-red-700';
+                            msgEl.classList.remove('hidden');
+                        } else {
+                            msgEl.textContent = `Found ${data.length} items in storage bucket`;
+                            msgEl.className = 'p-3 rounded bg-green-50 text-green-800';
+                            msgEl.classList.remove('hidden');
+                            console.log('Bucket contents:', data);
+                        }
+                    } catch (err) {
+                        msgEl.textContent = 'Exception: ' + err.message;
+                        msgEl.className = 'p-3 rounded bg-red-100 text-red-700';
+                        msgEl.classList.remove('hidden');
+                    }
+                });
+            }
+            
+            // Image preview for file input
+            const productFileEl = document.getElementById('productFile');
+            const productPreviewEl = document.getElementById('productPreview');
+            if (productFileEl && productPreviewEl) {
+                productFileEl.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        productPreviewEl.src = URL.createObjectURL(file);
+                        productPreviewEl.classList.remove('hidden');
+                    }
+                });
+            }
+            
+            // Image preview for URL input
+            const productImageInput = document.getElementById('productImage');
+            if (productImageInput && productPreviewEl) {
+                productImageInput.addEventListener('input', (e) => {
+                    const url = e.target.value.trim();
+                    if (url) {
+                        productPreviewEl.src = url;
+                        productPreviewEl.classList.remove('hidden');
+                    }
+                });
+            }
+            
+            // Mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // Initial check for existing auth
+            checkAdminAuth();
         });
-        const logoutBtnMobile = document.getElementById('logoutBtnMobile');
-        if (logoutBtnMobile) logoutBtnMobile.addEventListener('click', () => { if (confirm('Are you sure you want to logout?')) logout(); });
     </script>
 </body>
 
